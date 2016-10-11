@@ -2105,27 +2105,33 @@ if (isNarrowString!(C[]))
     static if (is(Unqual!C == char))
     {
         immutable c = str[0];
-        if (c < 0x80)
+        size_t char_length = 1;
+        if (!(c < 128))
         {
-            //ptr is used to avoid unnnecessary bounds checking.
-            str = str.ptr[1 .. str.length];
+            if ((c & 0b1100_0000) == 0b1000_0000)
+            {
+                //just skip one in case this is not the beginning of a code-point char
+            }
+            else if (c < 192)
+            {
+                char_length = 2;
+            }
+            else if (c < 240)
+            {
+                char_length = 3;
+            }
+            else if (c < 248)
+            {
+                char_length = 4;
+            }
+            else if (c < 253)
+            {
+            }
+            //This should not happen but for some reason it does
+            char_length = char_length > str.length ? str.length : char_length;
         }
-        else
-        {
-             import core.bitop : bsr;
-             // OR with 1u so we never take bsr(0), which would be illegal. If
-             // c == 0xFF (invalid character), we take bsr(1) which returns 0.
-             // At the other extreme, if c = 0b10xx_xxxx (invalid), bsr returns
-             // 6 and subsquently msbs is 1, which is exactly what we wanted
-             // (skip the invalid byte).
-             uint msbs = 7u - bsr(~c | 1u);
-             if (msbs == 7)
-             {
-                 // Invalid UTF-8, c is 0xFE or 0xFF.
-                 msbs = 1;
-             }
-             str = str.ptr[min(msbs, str.length) .. str.length];
-        }
+
+        str = str.ptr[char_length .. str.length];
     }
     else static if (is(Unqual!C == wchar))
     {

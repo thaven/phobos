@@ -2302,20 +2302,46 @@ if (!isNarrowString!(T[]) && !is(T[] == void[]))
 /// ditto
 @property dchar front(T)(T[] a) @safe pure if (isNarrowString!(T[]))
 {
-    import std.utf : decode;
     assert(a.length, "Attempting to fetch the front of an empty array of " ~ T.stringof);
-    immutable c = a[0];
-    static if (is(Unqual!T == char))
-    {
-        if (c < 128)
-        {
-            return cast(dchar)c;
-        }
-    }
+    immutable dchar c = a[0];
 
-    size_t i = 0;
-    return decode(a, i);
+    if (c & 128)
+    {
+        if (c & 64)
+        {
+            auto l = charWidthTab.ptr[c - 192];
+            if (str.length < l)
+                goto Linvalid;
+
+            final switch (l)
+            {
+            case 2:
+                c = ((c & ~(64 | 128)) << 6);
+                c |= (a[1] & ~0x80);
+                break;
+            case 3:
+                c = ((c & ~(32 | 64 | 128)) << 12);
+                c |= ((a[1] & ~0x80) << 6);
+                c |= ((a[2] & ~0x80));
+                break;
+            case 4:
+                c = ((c & ~(16 | 32 | 64 | 128)) << 18);
+                c |= ((a[1] & ~0x80) << 12);
+                c |= ((a[2] & ~0x80) << 6);
+                c |= ((a[3] & ~0x80));
+                break;
+            case 5, 6, 1:
+                goto Linvalid;
+            }
+        }
+        else
+        Linvalid : 
+           throw new Exception("yadayada");
+
+    }
+    return c;
 }
+
 
 /**
 Implements the range interface primitive $(D back) for built-in

@@ -2303,43 +2303,59 @@ if (!isNarrowString!(T[]) && !is(T[] == void[]))
 @property dchar front(T)(T[] a) @safe pure if (isNarrowString!(T[]))
 {
     assert(a.length, "Attempting to fetch the front of an empty array of " ~ T.stringof);
-    immutable dchar c = a[0];
-
-    if (c & 128)
+    import std.utf : decode, UTFException;
+    static if (is(Unqual!T == char))
     {
-        if (c & 64)
+        __gshared static immutable ubyte[] charWidthTab = [
+            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+            3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+            4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0
+        ];
+
+        immutable dchar c = a[0];
+
+        if (c & 128)
         {
-            auto l = charWidthTab.ptr[c - 192];
-            if (str.length < l)
-                goto Linvalid;
-
-            final switch (l)
+            if (c & 64)
             {
-            case 2:
-                c = ((c & ~(64 | 128)) << 6);
-                c |= (a[1] & ~0x80);
-                break;
-            case 3:
-                c = ((c & ~(32 | 64 | 128)) << 12);
-                c |= ((a[1] & ~0x80) << 6);
-                c |= ((a[2] & ~0x80));
-                break;
-            case 4:
-                c = ((c & ~(16 | 32 | 64 | 128)) << 18);
-                c |= ((a[1] & ~0x80) << 12);
-                c |= ((a[2] & ~0x80) << 6);
-                c |= ((a[3] & ~0x80));
-                break;
-            case 5, 6, 1:
-                goto Linvalid;
-            }
-        }
-        else
-        Linvalid : 
-           throw new Exception("yadayada");
+                auto l = charWidthTab[c - 192];
+                if (str.length < l)
+                    goto Linvalid;
 
+                final switch (l)
+                {
+                case 2:
+                    c = ((c & ~(64 | 128)) << 6);
+                    c |= (a[1] & ~0x80);
+                    break;
+                case 3:
+                    c = ((c & ~(32 | 64 | 128)) << 12);
+                    c |= ((a[1] & ~0x80) << 6);
+                    c |= ((a[2] & ~0x80));
+                break;
+                case 4:
+                    c = ((c & ~(16 | 32 | 64 | 128)) << 18);
+                    c |= ((a[1] & ~0x80) << 12);
+                    c |= ((a[2] & ~0x80) << 6);
+                    c |= ((a[3] & ~0x80));
+                break;
+                }
+            }
+            else
+            Linvalid : 
+                throw new UTFException("Invalid UTF-8 sequence");
+
+        }
+
+        return c;
     }
-    return c;
+    else
+   {
+        size_t i = 0;
+        return decode(a, i);
+   }
+
 }
 
 

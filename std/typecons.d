@@ -4872,7 +4872,9 @@ private static:
             void simple(int) @safe;
             int anotherSimple(string);
             int overloaded(int);
+            /+ XXX [BUG 19715]
             void overloaded(string) @safe;
+            +/
         }
 
         static class C_11

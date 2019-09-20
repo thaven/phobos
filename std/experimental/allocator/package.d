@@ -1174,7 +1174,7 @@ auto make(T, Allocator, A...)(auto ref Allocator alloc, auto ref A args)
             else
             {
                 // Assume cast is safe as allocation succeeded for `stateSize!T`
-                auto p = () @trusted { return cast(T*) m.ptr; }();
+                auto p = () @trusted { return cast(Unqual!T*) m.ptr; }();
                 emplaceRef!T(*p, args);
                 return p;
             }

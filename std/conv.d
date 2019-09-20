@@ -4340,6 +4340,7 @@ the type we want to build. This helps to build qualified objects on mutable
 buffer, without breaking the type system with unsafe casts.
 +/
 package void emplaceRef(T, UT, Args...)(ref UT chunk, auto ref Args args)
+if (is(UT == Unqual!T))
 {
     static if (args.length == 0)
     {
@@ -4489,7 +4490,7 @@ as `chunk`).
 T* emplace(T, Args...)(T* chunk, auto ref Args args)
 if (is(T == struct) || Args.length == 1)
 {
-    emplaceRef!T(*chunk, args);
+    emplaceRef!(T, Unqual!T)(*cast(Unqual!T*) chunk, args);
     return chunk;
 }
 

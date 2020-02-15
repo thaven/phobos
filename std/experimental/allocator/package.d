@@ -1816,14 +1816,14 @@ if (isInputRange!R && !isInfinite!R)
         if (!length) return null;
         auto m = alloc.allocate(T.sizeof * length);
         if (!m.ptr) return null;
-        auto result = () @trusted { return cast(T[]) m; } ();
+        auto result = () @trusted { return cast(Unqual!T[]) m; } ();
 
         size_t i = 0;
         scope (failure)
         {
             foreach (j; 0 .. i)
             {
-                auto p = () @trusted { return cast(Unqual!T*) &result[j]; }();
+                auto p = () @trusted { return &result[j]; }();
                 destroy(p);
             }
 
@@ -1849,7 +1849,7 @@ if (isInputRange!R && !isInfinite!R)
             }
         }
 
-        return result;
+        return () @trusted { return cast(T[]) result; } ();
     }
     else
     {
